@@ -47,10 +47,18 @@
         // 이미지를 예측하는 함수
         async function predict(image) {
             const prediction = await model.predict(image);
+            let resultText = "";
+
             for (let i = 0; i < maxPredictions; i++) {
                 const classPrediction = 
                     prediction[i].className + ": " + prediction[i].probability.toFixed(2);
                 labelContainer.childNodes[i].innerHTML = classPrediction;
+                resultText += classPrediction + "\n";
+            }
+
+            // App Inventor에 결과 전송
+            if (window.AppInventor) {
+                window.AppInventor.setWebViewString(resultText);
             }
         }
 
