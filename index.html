@@ -14,39 +14,61 @@
     <!-- 이미지 업로드 버튼 -->
     <input type="file" id="image-upload" accept="image/*" onchange="loadImage(event)">
     <br><br>
+    
     <!-- 판별 결과를 표시할 영역 -->
     <div id="label-container"></div>
+    <br>
     
+    <!-- 시작 버튼 추가 -->
+    <button id="predict-button" onclick="predictImage()" style="display:none;">판별 시작</button>
+
     <script type="text/javascript">
-        const URL = "./";  // 모델 파일 경로
+        // GitHub Pages URL을 절대 경로로 설정
+        const URL = "https://iseonwoo.github.io/insect-classifier/";
 
         let model, labelContainer, maxPredictions;
+        let img; // 이미지 객체를 전역으로 선언
 
         // Teachable Machine 모델 초기화 함수
         async function init() {
             const modelURL = URL + "model.json";
             const metadataURL = URL + "metadata.json";
 
-            // 모델과 메타데이터를 로드합니다.
-            model = await tmImage.load(modelURL, metadataURL);
-            maxPredictions = model.getTotalClasses();
+            try {
+                // 모델과 메타데이터를 로드합니다.
+                model = await tmImage.load(modelURL, metadataURL);
+                maxPredictions = model.getTotalClasses();
 
-            // 예측 결과를 표시할 label-container 초기화
-            labelContainer = document.getElementById("label-container");
-            labelContainer.innerHTML = "모델 로드 완료. 이미지를 업로드하세요.";
+                // label-container에 모델 로드 완료 메시지 표시
+                labelContainer = document.getElementById("label-container");
+                labelContainer.innerHTML = "모델 로드 완료. 이미지를 업로드하세요.";
+            } catch (error) {
+                console.error("모델을 로드하는 데 실패했습니다:", error);
+                labelContainer.innerHTML = "모델 로드에 실패했습니다. 콘솔에서 오류를 확인하세요.";
+            }
         }
 
         // 이미지 업로드 시 호출되는 함수
         async function loadImage(event) {
             const file = event.target.files[0];
-            const img = document.createElement("img");
+            img = document.createElement("img");
             img.src = URL.createObjectURL(file);
             img.width = 300;
             img.height = 300;
-            img.onload = async () => {
-                labelContainer.innerHTML = "예측 중...";
-                await predict(img);
+            img.onload = () => {
+                labelContainer.innerHTML = "이미지 로드 완료. 판별을 시작하려면 버튼을 클릭하세요.";
+                document.getElementById("predict-button").style.display = "block"; // 버튼 보이기
             };
+        }
+
+        // 판별 함수
+        async function predictImage() {
+            if (!img) {
+                labelContainer.innerHTML = "이미지를 업로드 해주세요.";
+                return;
+            }
+            labelContainer.innerHTML = "예측 중...";
+            await predict(img);
         }
 
         // 예측 함수
