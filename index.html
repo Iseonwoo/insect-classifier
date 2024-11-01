@@ -8,15 +8,15 @@
     <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest/dist/teachablemachine-image.min.js"></script>
 </head>
 <body>
-    <div>Teachable Machine Image Model</div>
-    <input type="file" id="image-upload" accept="image/*" onchange="loadImage(event)">
+    <h2>곤충 판별 앱</h2>
     <div id="label-container"></div>
 
     <script type="text/javascript">
-        const URL = "./";  // 현재 폴더를 가리킵니다.
+        const URL = "./";  // 모델 파일의 경로
 
         let model, labelContainer, maxPredictions;
 
+        // Teachable Machine 모델을 초기화하는 함수
         async function init() {
             const modelURL = URL + "model.json";
             const metadataURL = URL + "metadata.json";
@@ -25,41 +25,45 @@
             model = await tmImage.load(modelURL, metadataURL);
             maxPredictions = model.getTotalClasses();
 
-            // label-container에 예측 결과 표시를 위한 div 생성
+            // label-container에 예측 결과를 표시하기 위한 div 생성
             labelContainer = document.getElementById("label-container");
             for (let i = 0; i < maxPredictions; i++) {
                 labelContainer.appendChild(document.createElement("div"));
             }
+
+            // URL 파라미터로 이미지 경로 가져오기
+            const imagePath = new URLSearchParams(window.location.search).get('imagePath');
+            if (imagePath) {
+                predictFromImagePath(imagePath);
+            }
         }
 
-        // 파일 업로드 시 이미지 로드
-        async function loadImage(event) {
-            const file = event.target.files[0];
+        // App Inventor에서 전달된 이미지 경로로 예측을 수행하는 함수
+        async function predictFromImagePath(imagePath) {
             const img = document.createElement("img");
-            img.src = URL.createObjectURL(file);
-            img.width = 200;
-            img.height = 200;
+            img.src = imagePath;
+            img.crossOrigin = "anonymous"; // CORS 문제 해결
             img.onload = async () => {
-                await predict(img);
+                const prediction = await model.predict(img);
+                let resultText = "";
+
+                // 예측 결과에서 가장 높은 확률의 클래스 이름을 찾음
+                let highestPrediction = { className: "", probability: 0 };
+                for (let i = 0; i < maxPredictions; i++) {
+                    if (prediction[i].probability > highestPrediction.probability) {
+                        highestPrediction = prediction[i];
+                    }
+                }
+
+                // 결과를 화면에 표시
+                resultText = highestPrediction.className;
+                labelContainer.innerHTML = resultText;
+
+                // 결과를 App Inventor로 전송
+                if (window.AppInventor) {
+                    window.AppInventor.setWebViewString(resultText);
+                }
             };
-        }
-
-        // 이미지를 예측하는 함수
-        async function predict(image) {
-            const prediction = await model.predict(image);
-            let resultText = "";
-
-            for (let i = 0; i < maxPredictions; i++) {
-                const classPrediction = 
-                    prediction[i].className + ": " + prediction[i].probability.toFixed(2);
-                labelContainer.childNodes[i].innerHTML = classPrediction;
-                resultText += classPrediction + "\n";
-            }
-
-            // App Inventor에 결과 전송
-            if (window.AppInventor) {
-                window.AppInventor.setWebViewString(resultText);
-            }
         }
 
         // 초기화 함수 호출
