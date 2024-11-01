@@ -51,6 +51,7 @@
         // 이미지 업로드 시 호출되는 함수
         async function loadImage(event) {
             const file = event.target.files[0];
+            if (!file) return; // 파일이 없는 경우 종료
             img = document.createElement("img");
             img.src = URL.createObjectURL(file);
             img.width = 300;
