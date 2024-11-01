@@ -9,49 +9,53 @@
 </head>
 <body>
     <div>Teachable Machine Image Model</div>
-    <button type="button" onclick="init()">Start</button>
-    <div id="webcam-container"></div>
+    <input type="file" id="image-upload" accept="image/*" onchange="loadImage(event)">
     <div id="label-container"></div>
 
     <script type="text/javascript">
         const URL = "./";  // 현재 폴더를 가리킵니다.
 
-        let model, webcam, labelContainer, maxPredictions;
+        let model, labelContainer, maxPredictions;
 
         async function init() {
             const modelURL = URL + "model.json";
             const metadataURL = URL + "metadata.json";
 
+            // 모델을 로드합니다
             model = await tmImage.load(modelURL, metadataURL);
             maxPredictions = model.getTotalClasses();
 
-            const flip = true;
-            webcam = new tmImage.Webcam(200, 200, flip);
-            await webcam.setup();
-            await webcam.play();
-            window.requestAnimationFrame(loop);
-
-            document.getElementById("webcam-container").appendChild(webcam.canvas);
+            // label-container에 예측 결과 표시를 위한 div 생성
             labelContainer = document.getElementById("label-container");
             for (let i = 0; i < maxPredictions; i++) {
                 labelContainer.appendChild(document.createElement("div"));
             }
         }
 
-        async function loop() {
-            webcam.update();
-            await predict();
-            window.requestAnimationFrame(loop);
+        // 파일 업로드 시 이미지 로드
+        async function loadImage(event) {
+            const file = event.target.files[0];
+            const img = document.createElement("img");
+            img.src = URL.createObjectURL(file);
+            img.width = 200;
+            img.height = 200;
+            img.onload = async () => {
+                await predict(img);
+            };
         }
 
-        async function predict() {
-            const prediction = await model.predict(webcam.canvas);
+        // 이미지를 예측하는 함수
+        async function predict(image) {
+            const prediction = await model.predict(image);
             for (let i = 0; i < maxPredictions; i++) {
-                const classPrediction =
+                const classPrediction = 
                     prediction[i].className + ": " + prediction[i].probability.toFixed(2);
                 labelContainer.childNodes[i].innerHTML = classPrediction;
             }
         }
+
+        // 초기화 함수 호출
+        init();
     </script>
 </body>
 </html>
