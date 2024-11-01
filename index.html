@@ -3,70 +3,69 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Teachable Machine Image Model</title>
+    <title>곤충 판별 모델</title>
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest/dist/teachablemachine-image.min.js"></script>
 </head>
 <body>
-    <h2>곤충 판별 앱</h2>
+    <h2>곤충 판별 모델</h2>
+    <p>이미지를 업로드하여 곤충 종류를 판별하세요.</p>
+    
+    <!-- 이미지 업로드 버튼 -->
+    <input type="file" id="image-upload" accept="image/*" onchange="loadImage(event)">
+    <br><br>
+    <!-- 판별 결과를 표시할 영역 -->
     <div id="label-container"></div>
-
+    
     <script type="text/javascript">
-        const URL = "./";  // 모델 파일의 경로
+        const URL = "./";  // 모델 파일 경로
 
         let model, labelContainer, maxPredictions;
 
-        // Teachable Machine 모델을 초기화하는 함수
+        // Teachable Machine 모델 초기화 함수
         async function init() {
             const modelURL = URL + "model.json";
             const metadataURL = URL + "metadata.json";
 
-            // 모델을 로드합니다
+            // 모델과 메타데이터를 로드합니다.
             model = await tmImage.load(modelURL, metadataURL);
             maxPredictions = model.getTotalClasses();
 
-            // label-container에 예측 결과를 표시하기 위한 div 생성
+            // 예측 결과를 표시할 label-container 초기화
             labelContainer = document.getElementById("label-container");
-            for (let i = 0; i < maxPredictions; i++) {
-                labelContainer.appendChild(document.createElement("div"));
-            }
-
-            // URL 파라미터로 이미지 경로 가져오기
-            const imagePath = new URLSearchParams(window.location.search).get('imagePath');
-            if (imagePath) {
-                predictFromImagePath(imagePath);
-            }
+            labelContainer.innerHTML = "모델 로드 완료. 이미지를 업로드하세요.";
         }
 
-        // App Inventor에서 전달된 이미지 경로로 예측을 수행하는 함수
-        async function predictFromImagePath(imagePath) {
+        // 이미지 업로드 시 호출되는 함수
+        async function loadImage(event) {
+            const file = event.target.files[0];
             const img = document.createElement("img");
-            img.src = imagePath;
-            img.crossOrigin = "anonymous"; // CORS 문제 해결
+            img.src = URL.createObjectURL(file);
+            img.width = 300;
+            img.height = 300;
             img.onload = async () => {
-                const prediction = await model.predict(img);
-                let resultText = "";
-
-                // 예측 결과에서 가장 높은 확률의 클래스 이름을 찾음
-                let highestPrediction = { className: "", probability: 0 };
-                for (let i = 0; i < maxPredictions; i++) {
-                    if (prediction[i].probability > highestPrediction.probability) {
-                        highestPrediction = prediction[i];
-                    }
-                }
-
-                // 결과를 화면에 표시
-                resultText = highestPrediction.className;
-                labelContainer.innerHTML = resultText;
-
-                // 결과를 App Inventor로 전송
-                if (window.AppInventor) {
-                    window.AppInventor.setWebViewString(resultText);
-                }
+                labelContainer.innerHTML = "예측 중...";
+                await predict(img);
             };
         }
 
-        // 초기화 함수 호출
+        // 예측 함수
+        async function predict(image) {
+            const prediction = await model.predict(image);
+            let highestPrediction = { className: "", probability: 0 };
+
+            // 가장 높은 확률의 예측 결과 찾기
+            for (let i = 0; i < maxPredictions; i++) {
+                if (prediction[i].probability > highestPrediction.probability) {
+                    highestPrediction = prediction[i];
+                }
+            }
+
+            // 결과 출력
+            labelContainer.innerHTML = `예측된 곤충: ${highestPrediction.className} (확률: ${(highestPrediction.probability * 100).toFixed(2)}%)`;
+        }
+
+        // 페이지 로드시 모델 초기화
         init();
     </script>
 </body>
